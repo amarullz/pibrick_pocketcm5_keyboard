@@ -17,6 +17,7 @@ make pibrick_pocketcm5_keyboard:default
 
 ## Customize your Keys
 You can customize your keys with [https://vial.rocks/](https://vial.rocks/)
+- If you mess up with `VIAL` and want to reset the keymaps, you can download [pibrick_pocketcm5-default-keymaps.vil](docs/pibrick_pocketcm5-default-keymaps.vil)
 
 ---
 ## Default Keymaps
