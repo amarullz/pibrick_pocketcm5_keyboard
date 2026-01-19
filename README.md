@@ -6,57 +6,57 @@
 make pibrick_pocketcm5_keyboard:default
 ```
 
-## How to Flash Keyboard Firmware
-- Turn Off Device
-- Push and Hold User Button 1 (Middle Left below USB2 Connetor)
-- Plug Bottom USB-C to your PC
-- It will shown on your PC as Mass Storage with label `RPI-RP2`
-- Copy `uf2` firmware into `RPI-RP2`
-- Keyboard will auto restart and shown as HID in your PC
-- You can turn on your device
+## How to Flash the Keyboard Firmware
+- Turn off the device
+- Press and hold **User Button 1** (middle-left, below the USB2 connector)
+- Plug the bottom USB-C port into your PC
+- The device will appear on your PC as a mass storage device labeled `RPI-RP2`
+- Copy the `uf2` firmware file into `RPI-RP2`
+- The keyboard will automatically restart and appear as an HID device on your PC
+- You can now turn on your device
 
 ## Customize your Keys
-You can customize your keys with [https://vial.rocks/](https://vial.rocks/)
-- If you mess up with `VIAL` and want to reset the keymaps, you can download [pibrick_pocketcm5-default-keymaps.vil](docs/pibrick_pocketcm5-default-keymaps.vil)
+You can customize your keys using [https://vial.rocks/](https://vial.rocks/)
+- If you mess up the `VIAL` configuration and want to reset the keymaps, you can download [pibrick_pocketcm5-default-keymaps.vil](docs/pibrick_pocketcm5-default-keymaps.vil)
 
 ---
 ## Default Keymaps
 ### Layer 0
 ![piBrick Pocket-CM5 3D Render](docs/Layer0.png)
-Layer-0 is default layer, mainly as Alpha Character.
-- LGui / Super Key on Top Panel
-- Mouse drag using Green/Call Button, Right Click with Red/Hangup Button
-- Back button is configured as TAP-DANCE with this configuration
-  - Default TAP: ESC
-  - Tap and Hold: Toggle trackpad mode
-    - **Blinking:** Arrow Mode
-    - **Static/Default:** Mouse Mode
-- `TAB` is on Dollar `$` Key close to `Enter`
-- Modifier Keys (ALT, CTRL, SHIFT) is on `OSM` mode. It means you can tap it once then press other key to do the combination, but you can also tap and hold the mods simultanously with other keys.
-- Press `SYM` to move to `Layer-1`, It's also single mode. It will only process single character and will going back into Layer-0 imediately, or you can tap and hold `SYM` to stay in `Layer-1`
+Layer 0 is the default layer, mainly for letter characters.
+- **LGui / Super Key** is on the top panel
+- Mouse drag using the **Green / Call** button, right-click using the **Red / Hangup** button
+- The **Back** button is configured as a TAP-DANCE key with the following behavior:
+  - Default tap: `ESC`
+  - Tap and hold: Toggle trackpad mode  
+    - **Blinking:** Arrow mode  
+    - **Static / Default:** Mouse mode
+- `TAB` is on the dollar `$` key, close to `Enter`
+- Modifier keys (`ALT`, `CTRL`, `SHIFT`) use `OSM` mode. You can tap a modifier once and then press another key to apply the combination, or tap and hold the modifier simultaneously with other keys.
+- Press `SYM` to move to **Layer 1**. This is a single-shot mode: it processes one character and immediately returns to Layer 0. You can also tap and hold `SYM` to stay in Layer 1.
 
 ### Layer 1
 ![piBrick Pocket-CM5 3D Render](docs/Layer1.png)
-Layer-1 is main characters & numeric layer which printed on pyshical keyboard
-- Press `SYM` again to go into `Layer-2`
-- Press `Right Shift` to go into `Layer-3`
+Layer 1 contains the main symbols and numeric characters printed on the physical keyboard.
+- Press `SYM` again to go to **Layer 2**
+- Press `Right Shift` to go to **Layer 3**
 
 ### Layer 2
 ![piBrick Pocket-CM5 3D Render](docs/Layer2.png)
-Layer-2 is for extended characters
-- Press `SYM` again to go back into `Layer-0`
-- Press `Right Shift` to go into `Layer-3`
+Layer 2 is used for extended characters.
+- Press `SYM` again to return to **Layer 0**
+- Press `Right Shift` to go to **Layer 3**
 
 ### Layer 3
 ![piBrick Pocket-CM5 3D Render](docs/Layer3.png)
-Layer-3 is Function and Navigation layers
+Layer 3 contains function and navigation keys.
 
 ### Layers Tips
-- You can go to `Layer-2` from Default layer by simply `Double-Tap` the `SYM` Key.
-- You can go to `Layer-3` from Default layer by simply tap `SYM` then `Right Shift` Keys.
-- Tap and Hold `BACK` button to toggle Trackpad mode and use it as Arrow Keys. Trackpad click will becoming `ENTER` when you are on Arrow Mode.
-- Double Tap and Hold the `SYM` key then rotate the Rotary Wheel to change keyboard backlight
-- Double Tap `SYM` then tap `$` for Ampersand `&`
+- You can go to **Layer 2** from the default layer by double-tapping the `SYM` key.
+- You can go to **Layer 3** from the default layer by tapping `SYM` and then `Right Shift`.
+- Tap and hold the `BACK` button to toggle trackpad mode and use it as arrow keys. The trackpad click becomes `ENTER` when in Arrow mode.
+- Double-tap and hold the `SYM` key, then rotate the rotary wheel to change the keyboard backlight.
+- Double-tap `SYM`, then tap `$` to input an ampersand `&`.
 
 ---
 
