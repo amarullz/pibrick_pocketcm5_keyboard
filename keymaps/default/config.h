@@ -17,4 +17,4 @@
 #pragma once
 
 #define VIAL_KEYBOARD_UID {0x24, 0x83, 0x46, 0xE5, 0x7B, 0xFC, 0x17, 0xA6}
-#define BACKLIGHT_BREATHING
+// #define BACKLIGHT_BREATHING

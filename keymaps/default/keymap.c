@@ -17,6 +17,8 @@
 #include QMK_KEYBOARD_H
 #include "i2c_master.h"
 #include "eeprom.h"
+#include "quantum.h"
+#include "hal.h"
 
 // Trackpad Constants
 #ifndef TRACKPAD_ADDRESS
@@ -259,6 +261,60 @@ typedef union {
 } user_config_t;
 static user_config_t user_config;
 
+// RP2040 Hardware PWM for Panel
+static PWMConfig pwm_config = {
+    .frequency = 62500000,
+    .period = 62500,
+    .callback = NULL,
+    .channels = {
+        {PWM_OUTPUT_DISABLED, NULL},   // Channel 0 (Channel A) -> Not Used
+        {PWM_OUTPUT_ACTIVE_LOW, NULL}  // Channel 1 (Channel B) -> GP29 Active-Low
+    }
+};
+static const uint16_t panel_light_levels[9] = {
+    0,       // 0   = OFF
+    625,     // 1   = 1%
+    1875,    // 2   = 3%
+    3750,    // 3   = 6%
+    7500,    // 4   = 12%
+    15625,   // 5   = 25%
+    28125,   // 6   = 45%
+    43750,   // 7   = 70%
+    62500    // 8   = 100%
+};
+void setPanelLight(bool on){
+  uint8_t bl=0;  
+  if (on){
+    uint8_t blsz=get_backlight_level();
+    if (blsz==0){
+      blsz=old_backlight_level;
+    }
+    bl=blsz;
+  }
+  if (bl > 8) {
+      bl = 8;
+  }
+  pwmEnableChannel(&PWMD6, 1, panel_light_levels[bl]);
+
+  // if (on){
+  //   writePinLow(pin_PANEL_BLK_KBD);
+  // }
+  // else{
+  //   writePinHigh(pin_PANEL_BLK_KBD);
+  // }
+}
+void initPanelLight(void){
+  // palSetPadMode(GP29, PAL_MODE_ALTERNATE_PWM);
+  palSetPadMode(
+    0U,
+    29,
+    PAL_MODE_ALTERNATE_PWM | PAL_RP_PAD_DRIVE12 | PAL_RP_GPIO_OE
+  );
+  pwmStart(&PWMD6, &pwm_config);
+  pwmEnableChannel(&PWMD6, 1, 255);
+  setPanelLight(true);
+}
+
 void initBackLightConfig(void){
   user_config.value=eeconfig_read_user();
   uint8_t old_backlight_level=get_backlight_level();
@@ -272,24 +328,20 @@ void initBackLightConfig(void){
   }
 }
 
+
 // Backlight setter
 void backlightSetState(bool on){
   if (on){
     if (!led_on){
-      // if (old_backlight_level == -1) old_backlight_level = get_backlight_level();
         if (old_rgb_value == -1) old_rgb_value = 1;
-        writePinLow(pin_PANEL_BLK_KBD);
         old_rgb_value = 1;
-        backlight_set(old_backlight_level); 
-        // backlight_enable();
+        backlight_set(old_backlight_level);
         led_on = true;
+        setPanelLight(true);
     }
   }
   else{
     if (led_on){
-      if (!isArrowMode){
-        writePinHigh(pin_PANEL_BLK_KBD);
-      }
       old_backlight_level = get_backlight_level();
       if (old_backlight_level!=user_config.backlight){
         user_config.backlight=old_backlight_level;
@@ -299,20 +351,36 @@ void backlightSetState(bool on){
       // backlight_disable();
       led_on = false; 
       halfmin_counter = 0;
+
+      if (!isArrowMode){
+        setPanelLight(false);
+      }
     }
   }
 }
 
 // Matrix scan user function
 void matrix_scan_user(void) {
+  static uint8_t last_level = 255;
+
   if (isArrowMode){
     if (timer_elapsed(blink_timer) > 200) { 
-      if (blink_state)
-        writePinHigh(pin_PANEL_BLK_KBD);
-      else
-        writePinLow(pin_PANEL_BLK_KBD);
+      if (blink_state){
+        setPanelLight(false);
+      }
+      else{
+        setPanelLight(true);
+      }
       blink_timer = timer_read();
       blink_state=!blink_state;
+    }
+  }
+  else if(led_on){
+    uint8_t level = get_backlight_level();
+    if (blink_state || (level != last_level)) {
+      blink_state=false;
+      last_level = level;
+      pwmEnableChannel(&PWMD6, 1, panel_light_levels[level]);
     }
   }
   if (idle_timer == 0) idle_timer = timer_read();
@@ -402,11 +470,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 // Board initialization function
 void board_init(void){
   // Init indicator pins
-  setPinOutput(pin_PANEL_BLK_KBD);
   setPinOutput(pin_RGB_R);
   setPinOutput(pin_RGB_G);
   setPinOutput(pin_RGB_B);
-  writePinLow(pin_PANEL_BLK_KBD);
   
   // Turn off RGB indicators
   setRgbVal(0,0,0);
@@ -416,9 +482,7 @@ void board_init(void){
     setPinInputHigh(direct_pin_keys[i]);
   }
 
-  // Turn on backlight
-  initBackLightConfig();
-  backlightSetState(true);
+  
 }
 
 // Pointing device initialization function
@@ -446,6 +510,11 @@ void keyboard_post_init_user(void) {
                                    400 };
   dynamic_keymap_set_tap_dance(0, &tapdance_alt);
   layer_change_timer = timer_read();
+
+  // Turn on backlight
+  initBackLightConfig();
+  initPanelLight();
+  backlightSetState(true);
 }
 
 // Layer state change handler
@@ -462,8 +531,8 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             }
             else{
               arrowSetMode(false);
-              writePinLow(pin_PANEL_BLK_KBD);
               blink_state=true;
+              setPanelLight(true);
             }
           }
         }
@@ -482,4 +551,3 @@ layer_state_t layer_state_set_user(layer_state_t state) {
   layer_change_timer = timer_read();
   return state;
 }
-
