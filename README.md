@@ -8,6 +8,7 @@ make pibrick_pocketcm5_keyboard:default
 
 ## How to Flash the Keyboard Firmware
 - Turn off the device
+- Move HID/Keyboard Switch to Bottom
 - Press and hold **User Button 1** (middle-left, below the USB2 connector)
 - Plug the bottom USB-C port into your PC
 - The device will appear on your PC as a mass storage device labeled `RPI-RP2`
