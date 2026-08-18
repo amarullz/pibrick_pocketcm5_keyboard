@@ -16,6 +16,7 @@
 
 #include QMK_KEYBOARD_H
 #include "i2c_master.h"
+#include "eeprom.h"
 
 // Trackpad Constants
 #ifndef TRACKPAD_ADDRESS
@@ -246,14 +247,41 @@ void setRgbVal(uint8_t r, uint8_t g, uint8_t b){
     writePinHigh(pin_RGB_B);
 }
 
+static uint8_t old_backlight_level = -1; 
+typedef union {
+    uint32_t value;
+    struct {
+        uint8_t backlight;
+        uint8_t b1;
+        uint8_t b2;
+        uint8_t initialized;
+    };
+} user_config_t;
+static user_config_t user_config;
+
+void initBackLightConfig(void){
+  user_config.value=eeconfig_read_user();
+  uint8_t old_backlight_level=get_backlight_level();
+  if (user_config.initialized==0xf3){
+    user_config.backlight = old_backlight_level;
+    user_config.initialized = 0xf3; // Signature saved
+  }
+  if (user_config.backlight!=old_backlight_level){
+    old_backlight_level=user_config.backlight;
+    backlight_set(old_backlight_level); 
+  }
+}
+
 // Backlight setter
 void backlightSetState(bool on){
   if (on){
     if (!led_on){
+      // if (old_backlight_level == -1) old_backlight_level = get_backlight_level();
         if (old_rgb_value == -1) old_rgb_value = 1;
         writePinLow(pin_PANEL_BLK_KBD);
         old_rgb_value = 1;
-        backlight_enable();
+        backlight_set(old_backlight_level); 
+        // backlight_enable();
         led_on = true;
     }
   }
@@ -262,7 +290,13 @@ void backlightSetState(bool on){
       if (!isArrowMode){
         writePinHigh(pin_PANEL_BLK_KBD);
       }
-      backlight_disable();
+      old_backlight_level = get_backlight_level();
+      if (old_backlight_level!=user_config.backlight){
+        user_config.backlight=old_backlight_level;
+        eeconfig_update_user(user_config.value);
+      }
+      backlight_set(0);
+      // backlight_disable();
       led_on = false; 
       halfmin_counter = 0;
     }
@@ -383,6 +417,7 @@ void board_init(void){
   }
 
   // Turn on backlight
+  initBackLightConfig();
   backlightSetState(true);
 }
 
