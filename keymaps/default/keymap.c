@@ -317,10 +317,13 @@ void initPanelLight(void){
 
 void initBackLightConfig(void){
   user_config.value=eeconfig_read_user();
-  uint8_t old_backlight_level=get_backlight_level();
-  if (user_config.initialized==0xf3){
+  old_backlight_level=get_backlight_level();
+  if (user_config.initialized!=0xf3){
     user_config.backlight = old_backlight_level;
     user_config.initialized = 0xf3; // Signature saved
+  }
+  if (old_backlight_level==0){
+    old_backlight_level = user_config.backlight;
   }
   if (user_config.backlight!=old_backlight_level){
     old_backlight_level=user_config.backlight;
@@ -482,7 +485,10 @@ void board_init(void){
     setPinInputHigh(direct_pin_keys[i]);
   }
 
-  
+  // Turn on backlight
+  initBackLightConfig();
+  initPanelLight();
+  backlightSetState(true);
 }
 
 // Pointing device initialization function
@@ -510,11 +516,6 @@ void keyboard_post_init_user(void) {
                                    400 };
   dynamic_keymap_set_tap_dance(0, &tapdance_alt);
   layer_change_timer = timer_read();
-
-  // Turn on backlight
-  initBackLightConfig();
-  initPanelLight();
-  backlightSetState(true);
 }
 
 // Layer state change handler
