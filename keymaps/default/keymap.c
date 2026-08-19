@@ -46,10 +46,10 @@
 #define pin_TP_RESET GP16
 
 // Indicators pins
-#define pin_PANEL_BLK_KBD GP29
-#define pin_RGB_R GP26
-#define pin_RGB_G GP27
-#define pin_RGB_B GP28
+// #define pin_PANEL_BLK_KBD GP29
+// #define pin_RGB_R GP26
+// #define pin_RGB_G GP27
+// #define pin_RGB_B GP28
 
 // Backlight timeout in seconds
 #define BACKLIGHT_TIMEOUT 5
@@ -109,7 +109,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_ASTR, KC_4,    KC_5,    KC_6,    KC_SLSH, KC_COLN, KC_SCLN, KC_QUOT, KC_DQT,  KC_BSPC,
         OSM(MOD_LALT), KC_7,    KC_8,    KC_9,    KC_QUES, KC_EXLM, KC_COMM, KC_DOT,  KC_DLR, KC_ENT,
                  OSM(MOD_LSFT),          KC_0,    KC_SPC,        OSL(2),            TO(3),
-        KC_WHOM,  KC_MYCM,    KC_MPRV,    KC_MNXT,    KC_KB_MUTE, KC_NO
+        BL_UP,  BL_DOWN,    KC_MPRV,    KC_MNXT,    KC_KB_MUTE, KC_NO
     ),
     [2] = LAYOUT(
         KC_TAB,          KC_LEFT_GUI,             QK_MOUSE_BUTTON_1,                KC_ESC,           KC_DEL, 
@@ -233,7 +233,10 @@ void arrowSetMode(bool arrowMode){
 }
 
 // RGB Indicator setter
+void setPwmRgb(uint8_t r, uint8_t g, uint8_t b);
 void setRgbVal(uint8_t r, uint8_t g, uint8_t b){
+  setPwmRgb(r,g,b);
+  /*
   if (r)
     writePinLow(pin_RGB_R);
   else
@@ -248,6 +251,7 @@ void setRgbVal(uint8_t r, uint8_t g, uint8_t b){
     writePinLow(pin_RGB_B);
   else
     writePinHigh(pin_RGB_B);
+  */
 }
 
 static uint8_t old_backlight_level = -1; 
@@ -290,6 +294,9 @@ void setPanelLight(bool on){
     if (blsz==0){
       blsz=old_backlight_level;
     }
+    if (blsz==0){
+      blsz=1;
+    }
     bl=blsz;
   }
   if (bl > 8) {
@@ -304,15 +311,66 @@ void setPanelLight(bool on){
   //   writePinHigh(pin_PANEL_BLK_KBD);
   // }
 }
-void initPanelLight(void){
-  // palSetPadMode(GP29, PAL_MODE_ALTERNATE_PWM);
+
+uint8_t savedLED_r=0;
+uint8_t savedLED_g=0;
+uint8_t savedLED_b=0;
+void setPwmRgbValue(uint16_t lvalue){
+  if (lvalue==0){
+    lvalue=400;
+  }
+  pwmEnableChannel(&PWMD5, 0, 62500-(savedLED_r?lvalue:0));
+  pwmEnableChannel(&PWMD5, 1, (savedLED_g?lvalue:0));
+  pwmEnableChannel(&PWMD6, 0, 62500-(savedLED_b?lvalue:0));
+}
+void setPwmRgb(uint8_t r, uint8_t g, uint8_t b) {
+  uint8_t blsz=get_backlight_level();
+  if (blsz==0){
+    blsz=old_backlight_level;
+  }
+  savedLED_r=r;
+  savedLED_g=g;
+  savedLED_b=b;
+  setPwmRgbValue(panel_light_levels[blsz]);
+}
+
+void initLightPwm(void){
+  // Panel
   palSetPadMode(
     0U,
     29,
     PAL_MODE_ALTERNATE_PWM | PAL_RP_PAD_DRIVE12 | PAL_RP_GPIO_OE
   );
+
+  // RGB
+  palSetPadMode(
+    0U,
+    26,
+    PAL_MODE_ALTERNATE_PWM | PAL_RP_PAD_DRIVE12 | PAL_RP_GPIO_OE
+  );
+  palSetPadMode(
+    0U,
+    27,
+    PAL_MODE_ALTERNATE_PWM | PAL_RP_PAD_DRIVE12 | PAL_RP_GPIO_OE
+  );
+  palSetPadMode(
+    0U,
+    28,
+    PAL_MODE_ALTERNATE_PWM | PAL_RP_PAD_DRIVE12 | PAL_RP_GPIO_OE
+  );
+
+  // Start PWM
   pwmStart(&PWMD6, &pwm_config);
-  pwmEnableChannel(&PWMD6, 1, 255);
+  pwmStart(&PWMD5, &pwm_config);
+
+  // Panel
+  pwmEnableChannel(&PWMD6, 1, 0);
+
+  // RGB
+  // Initially OFF
+  pwmEnableChannel(&PWMD5, 0, 62500);
+  pwmEnableChannel(&PWMD5, 1, 0);
+  pwmEnableChannel(&PWMD6, 0, 62500);
 }
 
 void initBackLightConfig(void){
@@ -391,7 +449,9 @@ void matrix_scan_user(void) {
         user_config.backlight=old_backlight_level;
         eeconfig_update_user(user_config.value);
       }
-      pwmEnableChannel(&PWMD6, 1, panel_light_levels[level]);
+      uint16_t lvalue=panel_light_levels[level];
+      pwmEnableChannel(&PWMD6, 1, lvalue);
+      setPwmRgbValue(lvalue);
     }
   }
   if (idle_timer == 0) idle_timer = timer_read();
@@ -484,12 +544,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 // Board initialization function
 void board_init(void){
   // Init indicator pins
-  setPinOutput(pin_RGB_R);
-  setPinOutput(pin_RGB_G);
-  setPinOutput(pin_RGB_B);
-  
-  // Turn off RGB indicators
-  setRgbVal(0,0,0);
+  // setPinOutput(pin_RGB_R);
+  // setPinOutput(pin_RGB_G);
+  // setPinOutput(pin_RGB_B);
 
   // Init direct pins
   for (uint8_t i=0;i<DIRECT_PINS_COUNT;i++){
@@ -525,10 +582,11 @@ void keyboard_post_init_user(void) {
 
   // Turn on backlight
   initBackLightConfig();
-  initPanelLight();
+  initLightPwm();
   backlightSetState(false);
   isInitialized=true;
   userInteracted();
+  setRgbVal(0,0,0);
 }
 
 // Layer state change handler
