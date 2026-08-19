@@ -320,8 +320,8 @@ void setPwmRgbValue(uint16_t lvalue){
     lvalue=400;
   }
   pwmEnableChannel(&PWMD5, 0, 62500-(savedLED_r?lvalue:0));
-  pwmEnableChannel(&PWMD5, 1, (savedLED_g?lvalue:0));
-  pwmEnableChannel(&PWMD6, 0, 62500-(savedLED_b?lvalue:0));
+  pwmEnableChannel(&PWMD5, 1, (savedLED_g?((uint16_t) (lvalue*0.4)):0));
+  pwmEnableChannel(&PWMD6, 0, 62500-(savedLED_b?((uint16_t) (lvalue*0.7)):0));
 }
 void setPwmRgb(uint8_t r, uint8_t g, uint8_t b) {
   uint8_t blsz=get_backlight_level();
