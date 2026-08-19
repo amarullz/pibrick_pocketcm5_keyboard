@@ -618,6 +618,18 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     case 3:
         setRgbVal(0,0,1);
         break;
+    case 4:
+        setRgbVal(0,1,1);
+        break;
+    case 5:
+        setRgbVal(1,1,0);
+        break;
+    case 6:
+        setRgbVal(1,0,1);
+        break;
+    case 7:
+        setRgbVal(1,1,1);
+        break;
   }
   userInteracted();
   layer_change_timer = timer_read();
