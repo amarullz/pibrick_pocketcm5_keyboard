@@ -364,7 +364,7 @@ void initLightPwm(void){
   pwmStart(&PWMD5, &pwm_config);
 
   // Panel
-  pwmEnableChannel(&PWMD6, 1, 0);
+  // pwmEnableChannel(&PWMD6, 1, 0);
 
   // RGB
   // Initially OFF
@@ -552,6 +552,7 @@ void board_init(void){
   for (uint8_t i=0;i<DIRECT_PINS_COUNT;i++){
     setPinInputHigh(direct_pin_keys[i]);
   }
+  isInitialized=false;
 }
 
 // Pointing device initialization function
@@ -580,13 +581,38 @@ void keyboard_post_init_user(void) {
   dynamic_keymap_set_tap_dance(0, &tapdance_alt);
   layer_change_timer = timer_read();
 
-  // Turn on backlight
+  // Turn on backlight & reset state
+  led_on = false;
   initBackLightConfig();
   initLightPwm();
-  backlightSetState(false);
   isInitialized=true;
-  userInteracted();
+  
   setRgbVal(0,0,0);
+  backlightSetState(true);
+
+  // setPanelLight(true);
+  idle_timer=0;
+  halfmin_counter=0;
+  userInteracted();
+}
+
+void suspend_wakeup_init_user(void) {
+  // USB woke up
+  led_on = false;
+  backlightSetState(true);
+  setPanelLight(true);
+  idle_timer=0;
+  halfmin_counter=0;
+  userInteracted();
+}
+void suspend_power_down_user(void) {
+  // USB suspended
+  arrowSetMode(false);
+  setRgbVal(0,0,0);
+  backlightSetState(false);
+  setPanelLight(false);
+  idle_timer=0;
+  halfmin_counter=0;
 }
 
 // Layer state change handler
