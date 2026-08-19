@@ -56,6 +56,7 @@
 
 // State variables
 static int layerPos = 0;
+static bool isInitialized = false;
 static bool isArrowMode = false;
 static bool arromEnterState = false;
 static int arrowRelX = 0;
@@ -312,7 +313,6 @@ void initPanelLight(void){
   );
   pwmStart(&PWMD6, &pwm_config);
   pwmEnableChannel(&PWMD6, 1, 255);
-  setPanelLight(true);
 }
 
 void initBackLightConfig(void){
@@ -339,12 +339,13 @@ void backlightSetState(bool on){
         if (old_rgb_value == -1) old_rgb_value = 1;
         old_rgb_value = 1;
         backlight_set(old_backlight_level);
-        led_on = true;
         setPanelLight(true);
+        led_on = true;
     }
   }
   else{
     if (led_on){
+      led_on = false; 
       old_backlight_level = get_backlight_level();
       if (old_backlight_level!=user_config.backlight){
         user_config.backlight=old_backlight_level;
@@ -352,7 +353,6 @@ void backlightSetState(bool on){
       }
       backlight_set(0);
       // backlight_disable();
-      led_on = false; 
       halfmin_counter = 0;
 
       if (!isArrowMode){
@@ -365,6 +365,9 @@ void backlightSetState(bool on){
 // Matrix scan user function
 void matrix_scan_user(void) {
   static uint8_t last_level = 255;
+  if (!isInitialized){
+    return;
+  }
 
   if (isArrowMode){
     if (timer_elapsed(blink_timer) > 200) { 
@@ -383,6 +386,11 @@ void matrix_scan_user(void) {
     if (blink_state || (level != last_level)) {
       blink_state=false;
       last_level = level;
+      if (last_level!=user_config.backlight){
+        old_backlight_level=level;
+        user_config.backlight=old_backlight_level;
+        eeconfig_update_user(user_config.value);
+      }
       pwmEnableChannel(&PWMD6, 1, panel_light_levels[level]);
     }
   }
@@ -398,6 +406,9 @@ void matrix_scan_user(void) {
 
 // User interaction handler
 void userInteracted(void){
+  if (!isInitialized){
+    return;
+  }
   if (led_on == false){
     backlightSetState(true);
   }
@@ -484,27 +495,22 @@ void board_init(void){
   for (uint8_t i=0;i<DIRECT_PINS_COUNT;i++){
     setPinInputHigh(direct_pin_keys[i]);
   }
-
-  // Turn on backlight
-  initBackLightConfig();
-  initPanelLight();
-  backlightSetState(true);
 }
 
 // Pointing device initialization function
 void pointing_device_init(void) {
-    setPinOutput(pin_TP_RESET);
-    writePinLow(pin_TP_RESET);
-    wait_ms(200);
-    writePinHigh(pin_TP_RESET);
-    wait_ms(200);
+  setPinOutput(pin_TP_RESET);
+  writePinLow(pin_TP_RESET);
+  wait_ms(200);
+  writePinHigh(pin_TP_RESET);
+  wait_ms(200);
 
-    i2c_init();
-    wait_ms(100);
+  i2c_init();
+  wait_ms(100);
 
-    // setPinOutput(pin_TP_SHUTDOWN);
-    // writePinLow(pin_TP_SHUTDOWN);
-    setPinInputHigh(pin_TP_MOTION);
+  // setPinOutput(pin_TP_SHUTDOWN);
+  // writePinLow(pin_TP_SHUTDOWN);
+  setPinInputHigh(pin_TP_MOTION);
 }
 
 // Keyboard post-initialization function
@@ -516,6 +522,13 @@ void keyboard_post_init_user(void) {
                                    400 };
   dynamic_keymap_set_tap_dance(0, &tapdance_alt);
   layer_change_timer = timer_read();
+
+  // Turn on backlight
+  initBackLightConfig();
+  initPanelLight();
+  backlightSetState(false);
+  isInitialized=true;
+  userInteracted();
 }
 
 // Layer state change handler
