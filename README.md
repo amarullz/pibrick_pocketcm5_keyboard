@@ -104,7 +104,7 @@ Layer 3 contains function and navigation keys.
 
 ---
 
-# piBrick Keyboard Control `pibrick-kbd.sh`
+# piBrick Keyboard Control `pibrick-kbd`
 
 `pibrick-kbd.sh` is a command-line utility for controlling the piBrick PocketCM5 Keyboard through its Raw HID interface.
 
@@ -407,201 +407,28 @@ level=$(sudo ./pibrick-kbd.sh -q backlight)
 echo "Backlight level: $level"
 ```
 
-## Raw HID Protocol
-
-The keyboard uses a 32-byte Raw HID report.
-
-The piBrick command ID is:
-
-```text
-0xFF
-```
-
-Command IDs:
-
-| ID | Command |
-|---:|---|
-| `0x01` | Timeout |
-| `0x02` | Backlight |
-| `0x03` | RGB |
-
-Operation IDs:
-
-| ID | Operation |
-|---:|---|
-| `0x00` | GET |
-| `0x01` | SET |
-
-Status codes:
-
-| Code | Meaning |
-|---:|---|
-| `0x00` | OK |
-| `0x01` | ERROR |
-
-The script checks the firmware response status before reporting a successful operation.
-
-### Timeout
-
-GET request:
-
-```text
-FF 01 00
-```
-
-Response:
-
-```text
-FF 01 00 SS
-```
-
-`SS` contains the timeout in seconds.
-
-SET request:
-
-```text
-FF 01 01 SS
-```
-
-For example, 10 seconds:
-
-```text
-FF 01 01 0A
-```
-
-### Backlight
-
-GET request:
-
-```text
-FF 02 00
-```
-
-Response:
-
-```text
-FF 02 00 LL
-```
-
-`LL` contains the current backlight level.
-
-SET request:
-
-```text
-FF 02 01 LL
-```
-
-`LL` must be between `0` and `8`.
-
-For maximum brightness:
-
-```text
-FF 02 01 08
-```
-
-### RGB
-
-Set RGB:
-
-```text
-FF 03 RR GG BB 00 00
-```
-
-For `#338866`:
-
-```text
-FF 03 33 88 66 00 00
-```
-
-Set RGB with timeout:
-
-```text
-FF 03 RR GG BB LL HH
-```
-
-The duration is a 16-bit little-endian value:
-
-```text
-duration = LL + (HH << 8)
-```
-
-For 500 ms:
-
-```text
-500 = 0x01F4
-```
-
-The request is:
-
-```text
-FF 03 33 88 66 F4 01
-```
-
-Turn RGB off:
-
-```text
-FF 03 00 00 00 00 00
-```
-
-## HID Device Detection
-
-The script automatically finds the piBrick Raw HID interface.
-
-Device identifiers:
-
-```text
-VID: F10C
-PID: 0001
-Interface: 01
-```
-
-The Raw HID interface uses:
-
-```text
-Usage Page: 0xFF60
-Usage:      0x0061
-Interface: 1
-```
-
-For example, the interface may appear as:
-
-```text
-/dev/hidraw2
-```
-
-The `hidraw` number can change after reconnecting the keyboard or when other USB HID devices are connected.
-
-For this reason, `pibrick-kbd.sh` detects the correct HID interface dynamically instead of relying on a fixed `/dev/hidrawX` path.
 
 ## Troubleshooting
 
-### Device not found
+### Install system-wide
 
+From the directory containing pibrick-kbd.sh:
+```bash
+sudo install -m 755 pibrick-kbd.sh /usr/bin/pibrick-kbd
+```
+You can then run it from anywhere:
+```bash
+pibrick-kbd timeout
+pibrick-kbd backlight 8
+pibrick-kbd rgb 338866
+```
+No `.sh` extension is needed.
+
+### Device not found
 Check the available HID devices:
 
 ```bash
 ls -l /sys/bus/hid/devices/
-```
-
-You can also use:
-
-```bash
-hidapitester --list-detail
-```
-
-The piBrick Raw HID interface should show:
-
-```text
-F10C/0001: piBrick - PocketCM5 Keyboard
-  usagePage: 0xFF60
-  usage:     0x0061
-  interface: 1
-```
-
-The corresponding device should normally be something like:
-
-```text
-/dev/hidraw2
 ```
 
 ### Permission denied
@@ -613,6 +440,25 @@ sudo ./pibrick-kbd.sh timeout
 ```
 
 A udev rule can also be added if you want to use the script without `sudo`.
+
+**Recommended udev rule:**
+```bash
+sudo nano /etc/udev/rules.d/99-pibrick.rules
+```
+
+Add:
+```text
+KERNEL=="hidraw*", ATTRS{idVendor}=="f10c", ATTRS{idProduct}=="0001", MODE="0660", TAG+="uaccess"
+```
+The important part is `TAG+="uaccess"`, which grants access to the currently logged-in desktop user without making the device globally writable.
+
+Then reload the rules:
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+Turn keyboard switch off then turn it on again.
+
 
 ## Quick Reference
 
