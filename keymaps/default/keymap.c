@@ -681,16 +681,15 @@ void matrix_scan_user(void) {
 
     // Arrow mode panel blinking
     if (arrow_mode) {
-        if (timer_elapsed(blink_timer) > 200) {
+        if (timer_elapsed(blink_timer) > 400) {
             panel_set_enabled(!blink_state);
 
             blink_state = !blink_state;
             blink_timer = timer_read();
         }
     }
-
     // Update brightness when QMK backlight changes
-    if (keyboard_led_on) {
+    else if (keyboard_led_on) {
         uint8_t level = clamp_backlight_level(get_backlight_level());
 
         if (blink_state || level != last_level) {
