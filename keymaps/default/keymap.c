@@ -51,12 +51,18 @@
 #define PIBRICK_CMD_TIMEOUT     0x01
 #define PIBRICK_CMD_BACKLIGHT   0x02
 #define PIBRICK_CMD_RGB         0x03
+#define PIBRICK_CMD_TRACKPAD_ROTATION 0x05
 
 #define PIBRICK_GET             0x00
 #define PIBRICK_SET             0x01
 
 #define PIBRICK_STATUS_OK       0x00
 #define PIBRICK_STATUS_ERROR    0x01
+
+#define TRACKPAD_ROTATION_0    0
+#define TRACKPAD_ROTATION_90   1
+#define TRACKPAD_ROTATION_180  2
+#define TRACKPAD_ROTATION_270  3
 
 
 // ============================================================================
@@ -116,8 +122,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         QK_MOUSE_BUTTON_1, KC_LEFT_GUI, QK_MOUSE_BUTTON_1, TD(0), QK_MOUSE_BUTTON_2,
         KC_Q, KC_W, KC_E, KC_R, KC_T, KC_Y, KC_U, KC_I, KC_O, KC_P,
         KC_A, KC_S, KC_D, KC_F, KC_G, KC_H, KC_J, KC_K, KC_L, KC_BSPC,
-        OSM(MOD_LALT), KC_Z, KC_X, KC_C, KC_V, KC_B, KC_N, KC_M, KC_TAB, KC_ENT,
-        OSM(MOD_LSFT), OSM(MOD_LCTL), KC_SPC, OSL(1), OSM(MOD_RSFT),
+        LT(1,KC_LALT), KC_Z, KC_X, KC_C, KC_V, KC_B, KC_N, KC_M, KC_TAB, KC_ENT,
+        OSM(MOD_LSFT), LT(3,KC_LCTL), KC_SPC, OSL(1), OSM(MOD_RSFT),
         KC_BRIU, KC_BRID, KC_KB_VOLUME_UP, KC_KB_VOLUME_DOWN,
         QK_MOUSE_BUTTON_3, KC_NO
     ),
@@ -174,6 +180,8 @@ static bool arrow_mode = false;
 static bool arrow_enter_pressed = false;
 static bool keyboard_led_on = false;
 static bool blink_state = false;
+
+static uint8_t trackpad_rotation = TRACKPAD_ROTATION_0;
 
 static int16_t arrow_rel_x = 0;
 static int16_t arrow_rel_y = 0;
@@ -594,6 +602,30 @@ void matrix_read_cols_on_row(matrix_row_t current_matrix[], uint8_t current_row)
 // ============================================================================
 // Trackpad
 // ============================================================================
+static void rotate_trackpad(int8_t *x, int8_t *y) {
+    int8_t tx = *x;
+    int8_t ty = *y;
+
+    switch (trackpad_rotation) {
+        case TRACKPAD_ROTATION_90:
+            *x = -ty;
+            *y = tx;
+            break;
+
+        case TRACKPAD_ROTATION_180:
+            *x = -tx;
+            *y = -ty;
+            break;
+
+        case TRACKPAD_ROTATION_270:
+            *x = ty;
+            *y = -tx;
+            break;
+
+        default:
+            break;
+    }
+}
 
 static uint8_t trackpad_read_register(uint8_t reg) {
     uint8_t value;
@@ -658,6 +690,9 @@ bool pointing_device_task(void) {
     }
 
     report_mouse_t report = pointing_device_get_report();
+
+    // Rotate the trackpad coordinates based on the current rotation setting
+    rotate_trackpad(&x, &y);
 
     report.x = -x;
     report.y = y;
@@ -885,6 +920,25 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
         case PIBRICK_CMD_RGB:
             raw_hid_handle_rgb(data, length);
+            break;
+
+        case PIBRICK_CMD_TRACKPAD_ROTATION:
+            if (data[2] == PIBRICK_GET) {
+                data[2] = PIBRICK_STATUS_OK;
+                data[3] = trackpad_rotation;
+            } else if (data[2] == PIBRICK_SET && length >= 4) {
+                if (data[3] > TRACKPAD_ROTATION_270) {
+                    data[2] = PIBRICK_STATUS_ERROR;
+                    break;
+                }
+
+                trackpad_rotation = data[3];
+
+                data[2] = PIBRICK_STATUS_OK;
+                data[3] = trackpad_rotation;
+            } else {
+                data[2] = PIBRICK_STATUS_ERROR;
+            }
             break;
 
         default:

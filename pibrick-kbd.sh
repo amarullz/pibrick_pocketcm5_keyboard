@@ -11,6 +11,7 @@ PIBRICK_CMD=255
 CMD_TIMEOUT=1
 CMD_BACKLIGHT=2
 CMD_RGB=3
+CMD_TRACKPAD_ROTATION=5
 
 GET=0
 SET=1
@@ -307,6 +308,101 @@ backlight_set() {
     fi
 }
 
+# ------------------------------------------------------------
+# Trackpad rotation
+#
+# rotation
+# rotation <0-3>
+#
+#   0 = 0°
+#   1 = 90°
+#   2 = 180°
+#   3 = 270°
+# ------------------------------------------------------------
+
+rotation_get() {
+    local hidraw="$1"
+
+    send_and_read \
+        "$hidraw" \
+        "$PIBRICK_CMD" \
+        "$CMD_TRACKPAD_ROTATION" \
+        "$GET" || return 1
+
+    if ! check_response "$CMD_TRACKPAD_ROTATION"; then
+        rm -f "$RESPONSE_FILE"
+        RESPONSE_FILE=""
+        return 1
+    fi
+
+    local value
+    value=$(response_byte 3)
+
+    rm -f "$RESPONSE_FILE"
+    RESPONSE_FILE=""
+
+    if [ "$value" -gt 3 ]; then
+        echo "Error: invalid trackpad rotation returned by firmware: $value." >&2
+        return 1
+    fi
+
+    if [ "$QUIET" = true ]; then
+        echo "$value"
+    else
+        case "$value" in
+            0) echo "Trackpad rotation: 0°" ;;
+            1) echo "Trackpad rotation: 90°" ;;
+            2) echo "Trackpad rotation: 180°" ;;
+            3) echo "Trackpad rotation: 270°" ;;
+        esac
+    fi
+}
+
+
+rotation_set() {
+    local hidraw="$1"
+    local rotation="$2"
+
+    if ! [[ "$rotation" =~ ^[0-3]$ ]]; then
+        echo "Error: trackpad rotation must be 0-3." >&2
+        return 1
+    fi
+
+    send_and_read \
+        "$hidraw" \
+        "$PIBRICK_CMD" \
+        "$CMD_TRACKPAD_ROTATION" \
+        "$SET" \
+        "$rotation" || return 1
+
+    if ! check_response "$CMD_TRACKPAD_ROTATION"; then
+        rm -f "$RESPONSE_FILE"
+        RESPONSE_FILE=""
+        return 1
+    fi
+
+    local value
+    value=$(response_byte 3)
+
+    rm -f "$RESPONSE_FILE"
+    RESPONSE_FILE=""
+
+    if [ "$value" -gt 3 ]; then
+        echo "Error: invalid trackpad rotation returned by firmware: $value." >&2
+        return 1
+    fi
+
+    if [ "$QUIET" = true ]; then
+        echo "$value"
+    else
+        case "$value" in
+            0) echo "Trackpad rotation set to 0°." ;;
+            1) echo "Trackpad rotation set to 90°." ;;
+            2) echo "Trackpad rotation set to 180°." ;;
+            3) echo "Trackpad rotation set to 270°." ;;
+        esac
+    fi
+}
 
 # ------------------------------------------------------------
 # RGB
@@ -449,6 +545,17 @@ main() {
 
             rgb_set "$hidraw" "$arg1" "$arg2"
             ;;
+        rotate|trackpad-rotation)
+            if [ -z "$arg1" ]; then
+                rotation_get "$hidraw"
+            else
+                if [ -n "$arg2" ]; then
+                    echo "Error: too many arguments." >&2
+                    exit 1
+                fi
+                rotation_set "$hidraw" "$arg1"
+            fi
+            ;;
 
         *)
             usage >&2
@@ -471,6 +578,11 @@ usage() {
     echo "  $0 [-q] rgb <RRGGBB>"
     echo "  $0 [-q] rgb <RRGGBB> <milliseconds>"
     echo "  $0 [-q] rgb 0"
+    echo
+    echo "  $0 [-q] rotate"
+    echo "  $0 [-q] rotate <0-3>"
+    echo "  $0 [-q] trackpad-rotation"
+    echo "  $0 [-q] trackpad-rotation <0-3>"
     echo
     echo "Options:"
     echo "  -q, --quiet    Output only the requested value"
