@@ -362,6 +362,50 @@ sleep 0.02
 
 makes it faster.
 
+### Trackpad Rotation
+
+The `pibrick-kbd` utility can control the trackpad rotation to follow the screen orientation.
+
+```bash
+pibrick-kbd rotate
+pibrick-kbd rotate <rotation>
+```
+
+Supported rotation values:
+
+| Value | Rotation |
+|---:|---:|
+| 0 | 0° / Default |
+| 1 | 90° |
+| 2 | 180° |
+| 3 | 270° |
+
+Examples:
+```bash
+# Get current trackpad rotation
+pibrick-kbd rotate
+
+# Set trackpad to default orientation
+pibrick-kbd rotate 0
+
+# Rotate trackpad 90°
+pibrick-kbd rotate 1
+
+# Rotate trackpad 180°
+pibrick-kbd rotate 2
+
+# Rotate trackpad 270°
+pibrick-kbd rotate 3
+```
+
+The rotation command uses the piBrick Raw HID interface and is intended to synchronize the trackpad orientation with the display orientation when the screen is rotated.
+
+Use `-q` to output only the current/set rotation value:
+```bash
+pibrick-kbd -q rotate
+pibrick-kbd -q rotate 1
+```
+
 ## Quiet Mode
 
 Use `-q` when the command is being used by another script.
@@ -486,4 +530,8 @@ sudo ./pibrick-kbd.sh rgb 338866 500
 
 # Turn RGB off
 sudo ./pibrick-kbd.sh rgb 0
+
+# Rotate Trackpad 90deg
+sudo ./pibrick-kbd.sh rotate 1
+
 ```
