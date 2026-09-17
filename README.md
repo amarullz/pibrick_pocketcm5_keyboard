@@ -362,7 +362,7 @@ sleep 0.02
 
 makes it faster.
 
-### Trackpad Rotation
+## Trackpad Rotation
 
 The `pibrick-kbd` utility can control the trackpad rotation to follow the screen orientation.
 
