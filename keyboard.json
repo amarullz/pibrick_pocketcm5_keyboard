@@ -21,7 +21,7 @@
     "encoder": {
         "enabled": true,
         "rotary": [
-            { "pin_a": "GP19", "pin_b": "GP21", "resolution": 2 }
+            { "pin_a": "GP19", "pin_b": "GP21", "resolution": 4 }
         ]
     },
     "processor": "RP2040",
